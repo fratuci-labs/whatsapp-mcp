@@ -1,0 +1,32 @@
+# Runtime data, sessions, SQLite WAL files, IPC metadata, QR codes, and media
+data/
+media/
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sock
+daemon.json
+*.log
+qr.png
+
+# Compiled Go binaries & release artifacts
+whatsapp-mcp
+whatsapp-mcp.exe
+whatsapp-mcp-*
+dist/
+dist-wheels/
+build/
+
+# Python packaging & caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+python/whatsapp_mcp/bin/
+
+# Local environment & OS metadata
+.env
+.DS_Store
+Thumbs.db

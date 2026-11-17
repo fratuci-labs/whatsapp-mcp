@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "whatsapp-mcp"
+version = "1.0.0"
+description = "Cross-platform Model Context Protocol (MCP) server for WhatsApp Multi-Device (macOS, Linux, Windows)"
+readme = "README.md"
+license = "GPL-3.0-only"
+requires-python = ">=3.10"
+authors = [
+  { name = "Anderson Fratuci" }
+]
+keywords = ["mcp", "whatsapp", "whatsmeow", "ai-agents", "model-context-protocol"]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Operating System :: MacOS",
+  "Operating System :: Microsoft :: Windows",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Go",
+  "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/fratuci-labs/whatsapp-mcp"
+Repository = "https://github.com/fratuci-labs/whatsapp-mcp"
+
+[project.scripts]
+whatsapp-mcp = "whatsapp_mcp.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "python"}
+
+[tool.setuptools.packages.find]
+where = ["python"]
+
+[tool.setuptools.package-data]
+whatsapp_mcp = ["bin/*"]

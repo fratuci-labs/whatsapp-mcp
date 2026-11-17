@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+jobs:
+  go-test-and-crossbuild:
+    name: Go Vet, Test & Pure-Go Cross-Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Go Vet
+        env:
+          CGO_ENABLED: "0"
+        run: go vet ./...
+
+      - name: Unit & Integration Tests (Pure Go, No CGO)
+        env:
+          CGO_ENABLED: "0"
+        run: go test -v ./...
+
+      - name: Cross-Compile Matrix (macOS, Linux, Windows)
+        env:
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          for target in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
+            GOOS="${target%/*}"
+            GOARCH="${target#*/}"
+            EXT=""
+            if [ "$GOOS" = "windows" ]; then EXT=".exe"; fi
+            echo "Building whatsapp-mcp-${GOOS}-${GOARCH}${EXT}..."
+            GOOS="$GOOS" GOARCH="$GOARCH" go build -trimpath -ldflags="-s -w" -o "dist/whatsapp-mcp-${GOOS}-${GOARCH}${EXT}" .
+          done
+
+  python-launcher-test:
+    name: Python Wrapper Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Python Launcher Unit Tests
+        run: python3 -m unittest discover -s python/tests -v
