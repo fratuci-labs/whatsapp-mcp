@@ -25,8 +25,10 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install Python packaging tools
-        run: python3 -m pip install --upgrade pip build wheel
+      - name: Prepare Python build venv
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --upgrade pip build setuptools
 
       - name: Build Pure-Go Binaries & Checksums
         env:
@@ -34,7 +36,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           if [ -z "$VERSION" ] || [ "$VERSION" = "$GITHUB_REF_NAME" ]; then
-            VERSION="1.0.0"
+            VERSION="1.0.1"
           fi
           mkdir -p dist
           for target in darwin/arm64 darwin/amd64 linux/amd64 linux/arm64 windows/amd64 windows/arm64; do
@@ -47,32 +49,64 @@ jobs:
           done
           (cd dist && sha256sum whatsapp-mcp-* > checksums.txt)
 
-      - name: Build Platform-Specific Python Wheels (Offline-Capable)
+      - name: Build Platform-Specific Python Wheels (Stdlib Retagger)
         run: |
-          declare -A PLAT_TAGS=(
-            ["darwin-arm64"]="macosx_11_0_arm64"
-            ["darwin-amd64"]="macosx_10_15_x86_64"
-            ["linux-amd64"]="manylinux2014_x86_64"
-            ["linux-arm64"]="manylinux2014_aarch64"
-            ["windows-amd64"]="win_amd64"
-            ["windows-arm64"]="win_arm64"
-          )
-          mkdir -p python/whatsapp_mcp/bin
-          for key in "${!PLAT_TAGS[@]}"; do
-            rm -f python/whatsapp_mcp/bin/*
-            if [[ "$key" == windows-* ]]; then
-              cp "dist/whatsapp-mcp-${key}.exe" "python/whatsapp_mcp/bin/whatsapp-mcp.exe"
-            else
-              cp "dist/whatsapp-mcp-${key}" "python/whatsapp_mcp/bin/whatsapp-mcp"
-              chmod 755 "python/whatsapp_mcp/bin/whatsapp-mcp"
-            fi
-            python3 -m build --wheel --outdir dist-wheels
-            WHEEL_FILE=$(ls dist-wheels/*.whl | head -n 1)
-            python3 -m wheel tags --platform-tag "${PLAT_TAGS[$key]}" --remove "$WHEEL_FILE"
-            mv dist-wheels/*.whl dist/
-          done
-          rm -rf python/whatsapp_mcp/bin dist-wheels
-          python3 -m build --sdist --outdir dist
+          .venv/bin/python - <<'PY'
+          import base64
+          import hashlib
+          import shutil
+          import subprocess
+          import zipfile
+          from pathlib import Path
+
+          plat_tags = {
+              "darwin-arm64": ("whatsapp-mcp-darwin-arm64", "whatsapp-mcp", "macosx_11_0_arm64"),
+              "darwin-amd64": ("whatsapp-mcp-darwin-amd64", "whatsapp-mcp", "macosx_10_15_x86_64"),
+              "linux-amd64": ("whatsapp-mcp-linux-amd64", "whatsapp-mcp", "manylinux2014_x86_64"),
+              "linux-arm64": ("whatsapp-mcp-linux-arm64", "whatsapp-mcp", "manylinux2014_aarch64"),
+              "windows-amd64": ("whatsapp-mcp-windows-amd64.exe", "whatsapp-mcp.exe", "win_amd64"),
+              "windows-arm64": ("whatsapp-mcp-windows-arm64.exe", "whatsapp-mcp.exe", "win_arm64"),
+          }
+
+          bin_dir = Path("python/whatsapp_mcp/bin")
+          tmp_out = Path("dist-wheels")
+          dist_dir = Path("dist")
+
+          for _, (src_name, dst_name, tag) in plat_tags.items():
+              shutil.rmtree(bin_dir, ignore_errors=True)
+              shutil.rmtree(tmp_out, ignore_errors=True)
+              bin_dir.mkdir(parents=True, exist_ok=True)
+              dst = bin_dir / dst_name
+              shutil.copy2(dist_dir / src_name, dst)
+              dst.chmod(0o755)
+
+              subprocess.run([".venv/bin/python", "-m", "build", "--wheel", "--outdir", str(tmp_out)], check=True)
+              orig_whl = next(tmp_out.glob("*.whl"))
+              new_name = orig_whl.name.replace("-py3-none-any.whl", f"-py3-none-{tag}.whl")
+              target_whl = dist_dir / new_name
+
+              with zipfile.ZipFile(orig_whl, "r") as zin, zipfile.ZipFile(target_whl, "w", zipfile.ZIP_DEFLATED) as zout:
+                  record_path = None
+                  new_records = []
+                  for item in zin.infolist():
+                      data = zin.read(item.filename)
+                      if item.filename.endswith(".dist-info/WHEEL"):
+                          text = data.decode("utf-8").replace("Tag: py3-none-any", f"Tag: py3-none-{tag}")
+                          data = text.encode("utf-8")
+                      elif item.filename.endswith(".dist-info/RECORD"):
+                          record_path = item.filename
+                          continue
+                      zout.writestr(item, data)
+                      digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode("ascii")
+                      new_records.append(f"{item.filename},sha256={digest},{len(data)}")
+                  if record_path:
+                      new_records.append(f"{record_path},,")
+                      zout.writestr(record_path, ("\n".join(new_records) + "\n").encode("utf-8"))
+
+          shutil.rmtree(bin_dir, ignore_errors=True)
+          shutil.rmtree(tmp_out, ignore_errors=True)
+          subprocess.run([".venv/bin/python", "-m", "build", "--sdist", "--outdir", str(dist_dir)], check=True)
+          PY
 
       - name: Publish GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')

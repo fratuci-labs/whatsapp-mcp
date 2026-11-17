@@ -2,6 +2,9 @@
 
 Servidor **Model Context Protocol (MCP)** multiplataforma (**macOS, Linux e Windows**) para integração local com o **WhatsApp Multi-Device**, escrito em **Go puro (`CGO_ENABLED=0`)** com `whatsmeow`, `modernc.org/sqlite` e auto-daemon autenticado em background.
 
+> **Vai instalar em outro computador (Windows, Mac ou Linux) sem complicação?**
+> Siga o **[Manual Passo a Passo para Usuários Comuns (`docs/MANUAL_INSTALACAO.md`)](docs/MANUAL_INSTALACAO.md)** — pensado para uso direto sem precisar saber programar!
+
 ---
 
 ## Principais Recursos
