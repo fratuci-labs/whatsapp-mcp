@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "whatsapp-mcp"
-version = "1.0.1"
+version = "1.0.2"
 description = "Cross-platform Model Context Protocol (MCP) server for WhatsApp Multi-Device (macOS, Linux, Windows)"
 readme = "README.md"
 license = "GPL-3.0-only"
