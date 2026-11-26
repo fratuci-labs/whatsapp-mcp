@@ -13,8 +13,23 @@ New-Item -ItemType Directory -Force -Path $TmpDir | Out-Null
 
 try {
     $Downloaded = $false
+    $Token = if ($env:WHATSAPP_MCP_GITHUB_TOKEN) { $env:WHATSAPP_MCP_GITHUB_TOKEN } elseif ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } else { $env:GH_TOKEN }
 
-    if (Get-Command gh -ErrorAction SilentlyContinue) {
+    # 1. Public direct download from GitHub Releases (no token/login required when repo is public)
+    if (-not $Token) {
+        try {
+            $BaseDl = "https://github.com/$Repo/releases/latest/download"
+            Invoke-WebRequest -Uri "$BaseDl/$AssetName" -OutFile (Join-Path $TmpDir $AssetName) -ErrorAction Stop
+            Write-Host "==> Baixado $AssetName da Release oficial..."
+            try {
+                Invoke-WebRequest -Uri "$BaseDl/checksums.txt" -OutFile (Join-Path $TmpDir "checksums.txt") -ErrorAction Stop
+            } catch {}
+            $Downloaded = $true
+        } catch {}
+    }
+
+    # 2. Authenticated fallback via GitHub CLI (gh)
+    if (-not $Downloaded -and (Get-Command gh -ErrorAction SilentlyContinue)) {
         try {
             gh release download --repo $Repo --pattern $AssetName --pattern "checksums.txt" --dir $TmpDir 2>$null
             if (Test-Path (Join-Path $TmpDir $AssetName)) {
@@ -23,7 +38,7 @@ try {
         } catch {}
     }
 
-    $Token = if ($env:WHATSAPP_MCP_GITHUB_TOKEN) { $env:WHATSAPP_MCP_GITHUB_TOKEN } elseif ($env:GITHUB_TOKEN) { $env:GITHUB_TOKEN } else { $env:GH_TOKEN }
+    # 3. Authenticated fallback via GitHub API token
     if (-not $Downloaded -and $Token) {
         Write-Host "==> Baixando $AssetName via GitHub API autenticada..."
         $Headers = @{

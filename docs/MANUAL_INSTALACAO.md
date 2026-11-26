@@ -19,7 +19,7 @@ Escolha **apenas uma** das formas abaixo (a **Forma A** é a mais simples para a
 
 ### Forma A: Baixar o arquivo pronto pelo navegador (Recomendado)
 
-1. No computador onde deseja instalar, faça login no GitHub (com sua conta que tem acesso à organização `fratuci-labs`) e abra a página de versões:
+1. No computador onde deseja instalar, abra a página oficial de downloads:
    - **https://github.com/fratuci-labs/whatsapp-mcp/releases/latest**
 2. Em **Assets** (arquivos da versão), clique para baixar o arquivo correspondente ao seu computador:
 
@@ -58,29 +58,27 @@ Escolha **apenas uma** das formas abaixo (a **Forma A** é a mais simples para a
 
 ---
 
-### Forma B: Instalação Automática de 1 Comando (Para quem já tem `gh` ou `Go` / `Token`)
+### Forma B: Instalação Automática em 1 Comando (Sem baixar manualmente)
 
-Se você já tiver o repositório baixado na máquina (ou token do GitHub), pode rodar o instalador automático que já baixa/compila o conector no local certo e **imprime na tela o trecho exato para colar na configuração**:
+Basta copiar, colar no terminal do seu computador e apertar `Enter` — ele já baixa a versão certa, confere a assinatura de segurança e **mostra na tela o trecho pronto para colar na configuração**:
 
 - **No Mac ou Linux (Terminal)**:
   ```bash
-  bash scripts/install.sh
+  curl -fsSL https://raw.githubusercontent.com/fratuci-labs/whatsapp-mcp/main/scripts/install.sh | bash
   ```
 - **No Windows (PowerShell)**:
   ```powershell
-  powershell -ExecutionPolicy Bypass -File .\scripts\install.ps1
+  irm https://raw.githubusercontent.com/fratuci-labs/whatsapp-mcp/main/scripts/install.ps1 | iex
   ```
 
 ---
 
 ### Forma C: Instalação via Python / `uv` (Igual ao `mcp-clickhouse`)
 
-Se você já usa `uv` para seus outros MCPs:
-1. Baixe o arquivo `.whl` do seu sistema na página de **Releases** (ex.: `win_amd64.whl` no Windows ou `macosx_11_0_arm64.whl` no Mac Apple Silicon).
-2. Rode no terminal:
-   ```bash
-   uv tool install ./whatsapp_mcp-*.whl
-   ```
+Se você já usa `uv` / `uvx`, nem precisa instalar nada antes — basta usar a configuração abaixo no Passo 2 (`"command": "uvx"` com `"args": ["--from", "git+https://github.com/fratuci-labs/whatsapp-mcp", "whatsapp-mcp"]`), ou instalar o arquivo `.whl` da página de **Releases**:
+```bash
+uv tool install ./whatsapp_mcp-*.whl
+```
 
 ---
 

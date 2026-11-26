@@ -21,13 +21,28 @@ Servidor **Model Context Protocol (MCP)** multiplataforma (**macOS, Linux e Wind
 
 ---
 
+## Instalação Rápida (1 Comando)
+
+- **macOS / Linux**:
+  ```bash
+  curl -fsSL https://raw.githubusercontent.com/fratuci-labs/whatsapp-mcp/main/scripts/install.sh | bash
+  ```
+- **Windows (PowerShell)**:
+  ```powershell
+  irm https://raw.githubusercontent.com/fratuci-labs/whatsapp-mcp/main/scripts/install.ps1 | iex
+  ```
+
+O instalador baixa o binário nativo oficial da sua plataforma, valida o checksum **SHA-256** e imprime o bloco exato para colar no seu `mcp_config.json`.
+
+---
+
 ## Configuração Padrão (`mcp_config.json`)
 
 O servidor segue exatamente o padrão de configuração `command` / `args` / `env` de clientes MCP (Antigravity, Claude Desktop, Cursor, VS Code).
 
-### Opção 1: Via Python / `uv` (Windows, macOS e Linux — igual ao `mcp-clickhouse`)
+### Opção 1: Zero-Install via `uvx` (Windows, macOS e Linux — igual ao `mcp-clickhouse`)
 
-Usando um *wheel* pré-compilado da Release (funciona offline e em repositório privado) ou `GITHUB_TOKEN`:
+Na primeira execução, o launcher Python baixa e valida automaticamente (SHA-256) o binário pré-compilado do seu sistema operacional:
 
 ```json
 {
@@ -36,7 +51,7 @@ Usando um *wheel* pré-compilado da Release (funciona offline e em repositório 
       "command": "uvx",
       "args": [
         "--from",
-        "whatsapp-mcp",
+        "git+https://github.com/fratuci-labs/whatsapp-mcp",
         "whatsapp-mcp"
       ],
       "env": {
@@ -48,7 +63,7 @@ Usando um *wheel* pré-compilado da Release (funciona offline e em repositório 
 }
 ```
 
-> **Repositório privado (`fratuci-labs/whatsapp-mcp`)**: Enquanto o repositório estiver privado, instale o `.whl` correspondente à sua plataforma anexado na aba **Releases** (`uv tool install ./whatsapp_mcp-1.0.0-py3-none-macosx_11_0_arm64.whl` ou `win_amd64.whl`), ou exporte `GITHUB_TOKEN` no bloco `"env"` para que o launcher Python baixe o binário autenticado com verificação SHA-256.
+*(Para ambientes 100% offline, você também pode instalar o arquivo `.whl` pré-compilado anexado na aba [Releases](https://github.com/fratuci-labs/whatsapp-mcp/releases/latest) com `uv tool install ./whatsapp_mcp-*.whl`.)*
 
 ### Opção 2: Executável Nativo Direto (macOS, Linux ou Windows `.exe`)
 

@@ -32,15 +32,27 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 DOWNLOADED=0
+TOKEN="${WHATSAPP_MCP_GITHUB_TOKEN:-${GITHUB_TOKEN:-${GH_TOKEN:-}}}"
 
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+# 1. Public direct download from GitHub Releases (no token/login required when repo is public)
+if [ -z "$TOKEN" ] && command -v curl >/dev/null 2>&1; then
+  BASE_DL="https://github.com/${REPO}/releases/latest/download"
+  if curl -fsSL "${BASE_DL}/${ASSET_NAME}" -o "$TMP_DIR/$ASSET_NAME" 2>/dev/null; then
+    echo "==> Baixado ${ASSET_NAME} da Release oficial..."
+    curl -fsSL "${BASE_DL}/checksums.txt" -o "$TMP_DIR/checksums.txt" 2>/dev/null || true
+    DOWNLOADED=1
+  fi
+fi
+
+# 2. Authenticated fallback via GitHub CLI (gh)
+if [ "$DOWNLOADED" -eq 0 ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   echo "==> Baixando ${ASSET_NAME} via GitHub CLI (gh)..."
   if gh release download --repo "$REPO" --pattern "$ASSET_NAME" --pattern "checksums.txt" --dir "$TMP_DIR" 2>/dev/null; then
     DOWNLOADED=1
   fi
 fi
 
-TOKEN="${WHATSAPP_MCP_GITHUB_TOKEN:-${GITHUB_TOKEN:-${GH_TOKEN:-}}}"
+# 3. Authenticated fallback via GitHub API token
 if [ "$DOWNLOADED" -eq 0 ] && [ -n "$TOKEN" ]; then
   echo "==> Baixando ${ASSET_NAME} via GitHub API autenticada..."
   RELEASE_JSON="$(curl -fsSL -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${REPO}/releases/latest" || true)"
@@ -91,7 +103,7 @@ elif [ -f "go.mod" ] && command -v go >/dev/null 2>&1; then
   echo "==> Compilando whatsapp-mcp localmente com Go puro (CGO_ENABLED=0)..."
   CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o "$BIN_PATH" .
 else
-  echo "Não foi possível baixar automaticamente (repositório privado requer 'gh auth login' ou GITHUB_TOKEN) nem compilar localmente." >&2
+  echo "Não foi possível baixar automaticamente nem compilar localmente." >&2
   echo "Baixe o arquivo '${ASSET_NAME}' pelo navegador em: https://github.com/${REPO}/releases/latest" >&2
   exit 1
 fi
